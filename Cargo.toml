@@ -1,0 +1,16 @@
+[package]
+name = "csvchk"
+version = "0.1.0"
+edition = "2021"
+author = "Ken Youens-Clark <kyclark@gmail.com>"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+csv = "1.3"
+tabular = "0.2"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "2"
+rand = "0.8"

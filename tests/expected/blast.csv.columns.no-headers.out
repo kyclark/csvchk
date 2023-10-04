@@ -1,0 +1,14 @@
+// ****** Record 1 ******//
+qseqid   : CAM_READ_0234442157
+sseqid   : CP031125.1
+pident   : 92.941
+length   : 340
+mismatch : 21
+gapopen  : 3
+qstart   : 3
+qend     : 340
+sstart   : 801595
+send     : 801257
+evalue   : 6.81e-135
+bitscore : 492
+
