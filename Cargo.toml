@@ -3,6 +3,9 @@ name = "csvchk"
 version = "0.1.0"
 edition = "2021"
 author = "Ken Youens-Clark <kyclark@gmail.com>"
+description = "Vertical view of delimited text records"
+license-file = "LICENSE"
+repository = "https://github.com/kyclark/csvchk"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
