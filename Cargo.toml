@@ -1,11 +1,14 @@
 [package]
 name = "csvchk"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
+readme = "README.md"
 author = "Ken Youens-Clark <kyclark@gmail.com>"
 description = "Vertical view of delimited text records"
 license-file = "LICENSE"
+homepage = "https://github.com/kyclark/csvchk"
 repository = "https://github.com/kyclark/csvchk"
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

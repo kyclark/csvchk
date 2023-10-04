@@ -24,18 +24,6 @@ Options:
   -V, --version                Print version
 ```
 
-## Default Limit to One Record
-
-By default, the program will show you the first record:
-
-```
-$ csvchk tests/inputs/books.csv
-// ****** Record 1 ******//
-Author : Émile Zola
-Year   : 1865
-Title  : La Confession de Claude
-```
-
 ## Default Input is STDIN
 
 The optional "-" for the input filename indicates that STDIN is the default input stream:
@@ -48,6 +36,18 @@ Year   : 1865
 Title  : La Confession de Claude
 
 $ csvchk - < tests/inputs/books.csv
+// ****** Record 1 ******//
+Author : Émile Zola
+Year   : 1865
+Title  : La Confession de Claude
+```
+
+## Default Limit to One Record
+
+By default, the program will show you the first record:
+
+```
+$ csvchk tests/inputs/books.csv
 // ****** Record 1 ******//
 Author : Émile Zola
 Year   : 1865
