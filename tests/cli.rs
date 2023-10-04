@@ -85,6 +85,35 @@ fn run(args: &[&str], expected_file: &str) -> Result<()> {
 
 // --------------------------------------------------
 #[test]
+fn stdin_default() -> Result<()> {
+    run_stdin(&[], BOOKS_TSV, "tests/expected/books.tsv.stdin.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn stdin_dash() -> Result<()> {
+    run_stdin(&["-"], BOOKS_TSV, "tests/expected/books.tsv.stdin.out")
+}
+
+// --------------------------------------------------
+fn run_stdin(
+    args: &[&str],
+    input_file: &str,
+    expected_file: &str,
+) -> Result<()> {
+    let input = fs::read_to_string(input_file)?;
+    let expected = fs::read_to_string(expected_file)?;
+    Command::cargo_bin(PRG)?
+        .args(args)
+        .write_stdin(input)
+        .assert()
+        .success()
+        .stdout(expected);
+    Ok(())
+}
+
+// --------------------------------------------------
+#[test]
 fn nohdr_default() -> Result<()> {
     run(&[NOHDR], "tests/expected/nohdr.csv.out")
 }
@@ -255,5 +284,14 @@ fn blast_csv_columns_no_headers() -> Result<()> {
     run(
         &[BLAST_CSV, "-c", columns, "-N"],
         "tests/expected/blast.csv.columns.no-headers.out",
+    )
+}
+
+// --------------------------------------------------
+#[test]
+fn multiple_files() -> Result<()> {
+    run(
+        &[NOHDR, CSV, MOVIES_CSV, MOVIES_TSV, BOOKS_TSV],
+        "tests/expected/multiple.out",
     )
 }

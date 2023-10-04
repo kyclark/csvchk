@@ -36,6 +36,24 @@ Year   : 1865
 Title  : La Confession de Claude
 ```
 
+## Default Input is STDIN
+
+The optional "-" for the input filename indicates that STDIN is the default input stream:
+
+```
+$ cat tests/inputs/books.csv | csvchk
+// ****** Record 1 ******//
+Author : Émile Zola
+Year   : 1865
+Title  : La Confession de Claude
+
+$ csvchk - < tests/inputs/books.csv
+// ****** Record 1 ******//
+Author : Émile Zola
+Year   : 1865
+Title  : La Confession de Claude
+```
+
 Use the `-l|--limit` option to indicate more records:
 
 ```
@@ -206,6 +224,45 @@ So use `-s|--separator` to indicate:
 
 ```
 $ csvchk -s \; tests/inputs/books.txt
+// ****** Record 1 ******//
+Author : Émile Zola
+Year   : 1865
+Title  : La Confession de Claude
+```
+
+## Multiple Files
+
+When run with multiple files, a header is inserted.
+Note in the following run that the record separator is guessed for each input file:
+
+```
+$ csvchk tests/inputs/nohdr.csv tests/inputs/movies1.csv \
+> tests/inputs/movies2.csv tests/inputs/movies2.tsv tests/inputs/books.tsv
+==> tests/inputs/nohdr.csv <==
+// ****** Record 1 ******//
+a : d
+b : e
+c : f
+
+==> tests/inputs/movies1.csv <==
+// ****** Record 1 ******//
+title    : The Blues Brothers
+year     : 1980
+director : John Landis
+
+==> tests/inputs/movies2.csv <==
+// ****** Record 1 ******//
+title    : The Blues Brothers
+year     : 1980
+director : John Landis
+
+==> tests/inputs/movies2.tsv <==
+// ****** Record 1 ******//
+title    : The Blues Brothers
+year     : 1980
+director : John Landis
+
+==> tests/inputs/books.tsv <==
 // ****** Record 1 ******//
 Author : Émile Zola
 Year   : 1865
