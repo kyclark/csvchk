@@ -4,6 +4,7 @@ use csv::ReaderBuilder;
 use std::{
     fs::File,
     io::{self, BufRead, BufReader},
+    path::Path,
 };
 use tabular::{Row, Table};
 
@@ -51,7 +52,7 @@ fn run(args: Args) -> Result<()> {
     let num_files = args.files.len();
     for filename in &args.files {
         match open(filename) {
-            Err(err) => eprintln!("{}: {}", filename, err),
+            Err(err) => eprintln!("Error opening \"{}\": {}", filename, err),
             Ok(fh) => {
                 if num_files > 1 {
                     println!("==> {filename} <==");
@@ -148,6 +149,12 @@ fn test_guess_separator() {
 fn open(filename: &str) -> Result<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
-        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+        _ => {
+            if Path::new(filename).is_dir() {
+                bail!("Cannot open a directory")
+            } else {
+                Ok(Box::new(BufReader::new(File::open(filename)?)))
+            }
+        }
     }
 }

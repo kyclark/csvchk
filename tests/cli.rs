@@ -47,6 +47,17 @@ fn skips_bad_file() -> Result<()> {
 }
 
 // --------------------------------------------------
+#[test]
+fn skips_directory() -> Result<()> {
+    Command::cargo_bin(PRG)?
+        .args(&["."])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_match("Cannot open a directory")?);
+    Ok(())
+}
+
+// --------------------------------------------------
 fn dies(args: &[&str], expected: &str) -> Result<()> {
     Command::cargo_bin(PRG)?
         .args(args)
