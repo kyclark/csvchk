@@ -15,18 +15,13 @@ const BOOKS_TXT: &str = "tests/inputs/books.txt";
 const BLAST_CSV: &str = "tests/inputs/blast.csv";
 
 // --------------------------------------------------
-fn random_string() -> String {
-    rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(7)
-        .map(char::from)
-        .collect()
-}
-
-// --------------------------------------------------
 fn gen_bad_file() -> String {
     loop {
-        let filename = random_string();
+        let filename = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect();
         if fs::metadata(&filename).is_err() {
             return filename;
         }
@@ -37,7 +32,7 @@ fn gen_bad_file() -> String {
 #[test]
 fn skips_bad_file() -> Result<()> {
     let bad = gen_bad_file();
-    let expected = format!("{bad}: .* [(]os error 2[)]");
+    let expected = format!("\"{bad}\": .* [(]os error 2[)]");
     Command::cargo_bin(PRG)?
         .args(&[NOHDR, &bad, CSV])
         .assert()

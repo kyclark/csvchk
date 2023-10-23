@@ -1,29 +1,29 @@
 ==> tests/inputs/nohdr.csv <==
-// ****** Record 1 ******//
+// ****** Record 1 ****** //
 a : d
 b : e
 c : f
 
 ==> tests/inputs/movies1.csv <==
-// ****** Record 1 ******//
+// ****** Record 1 ****** //
 title    : The Blues Brothers
 year     : 1980
 director : John Landis
 
 ==> tests/inputs/movies2.csv <==
-// ****** Record 1 ******//
+// ****** Record 1 ****** //
 title    : The Blues Brothers
 year     : 1980
 director : John Landis
 
 ==> tests/inputs/movies2.tsv <==
-// ****** Record 1 ******//
+// ****** Record 1 ****** //
 title    : The Blues Brothers
 year     : 1980
 director : John Landis
 
 ==> tests/inputs/books.tsv <==
-// ****** Record 1 ******//
+// ****** Record 1 ****** //
 Author : Émile Zola
 Year   : 1865
 Title  : La Confession de Claude

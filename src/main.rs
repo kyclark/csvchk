@@ -104,7 +104,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
             bail!("Column names do not match record values")
         }
 
-        println!("// ****** Record {} ******//", record_num + 1);
+        println!("// ****** Record {} ****** //", record_num + 1);
         let mut table = Table::new("{:<} : {:<}");
         for (fnum, (col, value)) in columns.iter().zip(&values).enumerate() {
             if args.dense && value == &"" {
