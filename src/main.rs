@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use clap::Parser;
 use csv::ReaderBuilder;
+use regex::Regex;
 use std::{
     fs::File,
     io::{self, BufRead, BufReader},
@@ -130,7 +131,8 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
 
 // --------------------------------------------------
 fn guess_separator(filename: &str) -> u8 {
-    if filename.ends_with("tsv") {
+    let re = Regex::new(r"\.(txt|tsv)$").unwrap();
+    if re.is_match(filename) {
         b'\t'
     } else {
         b','
@@ -140,9 +142,10 @@ fn guess_separator(filename: &str) -> u8 {
 // --------------------------------------------------
 #[test]
 fn test_guess_separator() {
-    assert_eq!(guess_separator("foo.tsv"), b'\t');
-    assert_eq!(guess_separator("foo.csv"), b',');
     assert_eq!(guess_separator("foo"), b',');
+    assert_eq!(guess_separator("foo.csv"), b',');
+    assert_eq!(guess_separator("foo.txt"), b'\t');
+    assert_eq!(guess_separator("foo.tsv"), b'\t');
 }
 
 // --------------------------------------------------
