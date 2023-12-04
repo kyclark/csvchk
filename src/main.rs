@@ -102,7 +102,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
 
     let grep = match &args.grep {
         Some(val) => {
-            let re = Regex::new(&val)?;
+            let re = Regex::new(val)?;
             Some(re)
         }
         _ => None,
