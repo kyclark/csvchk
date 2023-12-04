@@ -36,6 +36,12 @@ struct Args {
     #[arg(short, long, value_delimiter = ',')]
     columns: Option<Vec<String>>,
 
+    #[arg(short, long)]
+    grep: Option<String>,
+
+    #[arg(short, long, default_value = "false")]
+    insensitive: bool,
+
     #[arg(default_value = "-")]
     files: Vec<String>,
 }
@@ -94,9 +100,30 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
         None
     };
 
+    let grep = match &args.grep {
+        Some(val) => {
+            let re = Regex::new(&val)?;
+            Some(re)
+        }
+        _ => None,
+    };
+
     for (record_num, record) in reader.records().enumerate() {
         let record = record?;
         let values: Vec<&str> = record.iter().collect();
+
+        if let Some(re) = &grep {
+            let all_vals = if args.insensitive {
+                values.join("").to_lowercase()
+            } else {
+                values.join("")
+            };
+
+            if !re.is_match(&all_vals) {
+                continue;
+            }
+        }
+
         let columns = &headers.clone().unwrap_or(
             (1..=values.len()).map(|i| format!("Field{i}")).collect(),
         );

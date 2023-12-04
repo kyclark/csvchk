@@ -23,3 +23,6 @@ $RUN -l 3 tests/inputs/movies2.tsv > $OUT/movies2.tsv.limit.3.out
 $RUN -c 1,2,3 -N tests/inputs/books.tsv > $OUT/books.tsv.columns.no-headers.out
 $RUN -N -c qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore tests/inputs/blast.csv > $OUT/blast.csv.columns.no-headers.out
 $RUN tests/inputs/nohdr.csv tests/inputs/movies1.csv tests/inputs/movies2.csv tests/inputs/movies2.tsv tests/inputs/books.tsv > $OUT/multiple.out
+$RUN -g Hooper tests/inputs/movies2.csv > $OUT/movies2.csv.grep.hooper.titlecase.out
+$RUN -g hooper tests/inputs/movies2.csv > $OUT/movies2.csv.grep.hooper.lowercase.out
+$RUN -g hooper -i tests/inputs/movies2.csv > $OUT/movies2.csv.grep.hooper.lowercase.insensitive.out

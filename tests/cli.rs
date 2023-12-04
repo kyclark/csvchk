@@ -301,3 +301,30 @@ fn multiple_files() -> Result<()> {
         "tests/expected/multiple.out",
     )
 }
+
+// --------------------------------------------------
+#[test]
+fn grep1() -> Result<()> {
+    run(
+        &[MOVIES_CSV, "-g", "Hooper"],
+        "tests/expected/movies2.csv.grep.hooper.titlecase.out",
+    )
+}
+
+// --------------------------------------------------
+#[test]
+fn grep2() -> Result<()> {
+    run(
+        &[MOVIES_CSV, "-g", "hooper"],
+        "tests/expected/movies2.csv.grep.hooper.lowercase.out",
+    )
+}
+
+// --------------------------------------------------
+#[test]
+fn grep3() -> Result<()> {
+    run(
+        &[MOVIES_CSV, "-g", "hooper", "-i"],
+        "tests/expected/movies2.csv.grep.hooper.lowercase.insensitive.out",
+    )
+}
