@@ -328,3 +328,21 @@ fn grep3() -> Result<()> {
         "tests/expected/movies2.csv.grep.hooper.lowercase.insensitive.out",
     )
 }
+
+// --------------------------------------------------
+#[test]
+fn grep4() -> Result<()> {
+    run(
+        &[MOVIES_CSV, "-g", "b[lr]", "-i", "-l", "0"],
+        "tests/expected/movies2.csv.grep.regex.insensitive.out",
+    )
+}
+
+// --------------------------------------------------
+#[test]
+fn grep5() -> Result<()> {
+    run(
+        &[MOVIES_CSV, "-g", "B[LR]", "-i", "-l", "0"],
+        "tests/expected/movies2.csv.grep.regex.insensitive.out",
+    )
+}

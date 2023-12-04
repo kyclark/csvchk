@@ -1,7 +1,7 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use clap::Parser;
 use csv::ReaderBuilder;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use std::{
     fs::File,
     io::{self, BufRead, BufReader},
@@ -102,7 +102,10 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
 
     let grep = match &args.grep {
         Some(val) => {
-            let re = Regex::new(val)?;
+            let re = RegexBuilder::new(val)
+                .case_insensitive(args.insensitive)
+                .build()
+                .map_err(|_| anyhow!(r#"Invalid pattern "{val}""#))?;
             Some(re)
         }
         _ => None,
@@ -113,13 +116,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
         let values: Vec<&str> = record.iter().collect();
 
         if let Some(re) = &grep {
-            let all_vals = if args.insensitive {
-                values.join("").to_lowercase()
-            } else {
-                values.join("")
-            };
-
-            if !re.is_match(&all_vals) {
+            if !re.is_match(&values.join("")) {
                 continue;
             }
         }

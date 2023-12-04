@@ -26,3 +26,4 @@ $RUN tests/inputs/nohdr.csv tests/inputs/movies1.csv tests/inputs/movies2.csv te
 $RUN -g Hooper tests/inputs/movies2.csv > $OUT/movies2.csv.grep.hooper.titlecase.out
 $RUN -g hooper tests/inputs/movies2.csv > $OUT/movies2.csv.grep.hooper.lowercase.out
 $RUN -g hooper -i tests/inputs/movies2.csv > $OUT/movies2.csv.grep.hooper.lowercase.insensitive.out
+$RUN -l 0 -g 'b[lr]' -i tests/inputs/movies2.csv > $OUT/movies2.csv.grep.regex.insensitive.out

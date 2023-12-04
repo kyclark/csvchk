@@ -269,6 +269,59 @@ Year   : 1865
 Title  : La Confession de Claude
 ```
 
+## Filtering
+
+Use the `-g|--grep` option to find files matching a given pattern:
+
+```
+$ csvchk -g Hooper tests/inputs/movies2.csv
+// ****** Record 2 ****** //
+title    : Les Misérables
+year     : 2012
+director : Tom Hooper
+```
+
+The default is to use case-sensitive matching, so a search for "hooper" will find nothing.
+Use the `-i|--insensitive` option to remedy this:
+
+```
+$ csvchk -g hooper -i tests/inputs/movies2.csv
+// ****** Record 2 ****** //
+title    : Les Misérables
+year     : 2012
+director : Tom Hooper
+```
+
+You can use a regular expression, for instance, to find "b" followed by either "l" or "r," case-insensitive, using `-l 0` to get all matches:
+
+```
+$ csvchk --grep 'b[lr]' -i tests/inputs/movies2.csv -l 0`
+// ****** Record 1 ****** //
+title    : The Blues Brothers
+year     : 1980
+director : John Landis
+
+// ****** Record 2 ****** //
+title    : Les Misérables
+year     : 2012
+director : Tom Hooper
+```
+
+You can also indicate the regex in uppercase:
+
+```
+$ csvchk --grep 'B[LR]' -i tests/inputs/movies2.csv -l 0`
+// ****** Record 1 ****** //
+title    : The Blues Brothers
+year     : 1980
+director : John Landis
+
+// ****** Record 2 ****** //
+title    : Les Misérables
+year     : 2012
+director : Tom Hooper
+```
+
 ## Author
 
 Ken Youens-Clark <kyclark@gmail.com>
