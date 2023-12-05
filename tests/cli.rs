@@ -333,7 +333,7 @@ fn grep3() -> Result<()> {
 #[test]
 fn grep4() -> Result<()> {
     run(
-        &[MOVIES_CSV, "-g", "b[lr]", "-i", "-l", "0"],
+        &[MOVIES_CSV, "-g", "b[lr]", "-i"],
         "tests/expected/movies2.csv.grep.regex.insensitive.out",
     )
 }
@@ -342,7 +342,16 @@ fn grep4() -> Result<()> {
 #[test]
 fn grep5() -> Result<()> {
     run(
+        &[MOVIES_CSV, "-g", "b[lr]", "-i", "-l", "0"],
+        "tests/expected/movies2.csv.grep.regex.insensitive.limit.0.out",
+    )
+}
+
+// --------------------------------------------------
+#[test]
+fn grep6() -> Result<()> {
+    run(
         &[MOVIES_CSV, "-g", "B[LR]", "-i", "-l", "0"],
-        "tests/expected/movies2.csv.grep.regex.insensitive.out",
+        "tests/expected/movies2.csv.grep.regex.insensitive.limit.0.out",
     )
 }

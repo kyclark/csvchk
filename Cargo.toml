@@ -1,6 +1,6 @@
 [package]
 name = "csvchk"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 readme = "README.md"
 authors = ["Ken Youens-Clark <kyclark@gmail.com>"]

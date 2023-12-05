@@ -145,7 +145,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
         }
         println!("{}", table);
 
-        if record_num + 1 == args.limit {
+        if args.limit > 0 && ((record_num + 1) >= args.limit) {
             break;
         }
     }
