@@ -116,7 +116,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
         let values: Vec<&str> = record.iter().collect();
 
         if let Some(re) = &grep {
-            if !re.is_match(&values.join("")) {
+            if !re.is_match(&values.join(" ")) {
                 continue;
             }
         }
