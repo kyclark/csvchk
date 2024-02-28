@@ -1,6 +1,7 @@
 use anyhow::Result;
 use assert_cmd::Command;
 use predicates::prelude::*;
+use pretty_assertions::assert_eq;
 use rand::{distributions::Alphanumeric, Rng};
 use std::fs;
 
@@ -53,39 +54,62 @@ fn skips_directory() -> Result<()> {
 }
 
 // --------------------------------------------------
-fn dies(args: &[&str], expected: &str) -> Result<()> {
-    Command::cargo_bin(PRG)?
-        .args(args)
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains(expected));
+fn complains(args: &[&str], expected: &str) -> Result<()> {
+    let output = Command::cargo_bin(PRG)?.args(args).output().unwrap();
+    assert!(output.status.success());
+
+    let stderr = String::from_utf8(output.stderr).expect("invalid UTF-8");
+    assert_eq!(stderr.trim(), expected);
     Ok(())
 }
 
 // --------------------------------------------------
 #[test]
-fn dies_empty_delimiter() -> Result<()> {
-    dies(&[CSV, "-s", ""], "--separator \"\" must be a single byte")
+fn complains_empty_delimiter() -> Result<()> {
+    complains(
+        &[CSV, "-s", ""],
+        &format!(r#"{CSV}: --separator "" must be a single byte"#),
+    )
 }
 
 // --------------------------------------------------
 #[test]
-fn dies_bad_delimiter() -> Result<()> {
-    dies(
+fn complains_bad_delimiter() -> Result<()> {
+    complains(
         &[CSV, "--separator", ",,"],
-        "--separator \",,\" must be a single byte",
+        &format!(r#"{CSV}: --separator ",," must be a single byte"#),
     )
 }
 
 // --------------------------------------------------
 fn run(args: &[&str], expected_file: &str) -> Result<()> {
-    println!("expected {}", &expected_file);
     let expected = fs::read_to_string(expected_file)?;
-    Command::cargo_bin(PRG)?
+    let output = Command::cargo_bin(PRG)?.args(args).output().unwrap();
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8(output.stdout).expect("invalid UTF-8");
+    assert_eq!(stdout, expected);
+
+    Ok(())
+}
+
+// --------------------------------------------------
+fn run_stdin(
+    args: &[&str],
+    input_file: &str,
+    expected_file: &str,
+) -> Result<()> {
+    let input = fs::read_to_string(input_file)?;
+    let expected = fs::read_to_string(expected_file)?;
+    let output = Command::cargo_bin(PRG)?
+        .write_stdin(input)
         .args(args)
-        .assert()
-        .success()
-        .stdout(expected);
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8(output.stdout).expect("invalid UTF-8");
+    assert_eq!(stdout, expected);
     Ok(())
 }
 
@@ -99,23 +123,6 @@ fn stdin_default() -> Result<()> {
 #[test]
 fn stdin_dash() -> Result<()> {
     run_stdin(&["-"], BOOKS_TSV, "tests/expected/books.tsv.stdin.out")
-}
-
-// --------------------------------------------------
-fn run_stdin(
-    args: &[&str],
-    input_file: &str,
-    expected_file: &str,
-) -> Result<()> {
-    let input = fs::read_to_string(input_file)?;
-    let expected = fs::read_to_string(expected_file)?;
-    Command::cargo_bin(PRG)?
-        .args(args)
-        .write_stdin(input)
-        .assert()
-        .success()
-        .stdout(expected);
-    Ok(())
 }
 
 // --------------------------------------------------

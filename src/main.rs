@@ -59,12 +59,14 @@ fn run(args: Args) -> Result<()> {
     let num_files = args.files.len();
     for filename in &args.files {
         match open(filename) {
-            Err(err) => eprintln!("Error opening \"{}\": {}", filename, err),
+            Err(err) => eprintln!(r#"Error opening "{filename}": {err}"#),
             Ok(fh) => {
                 if num_files > 1 {
                     println!("==> {filename} <==");
                 }
-                check(fh, filename, &args)?
+                if let Err(e) = check(fh, filename, &args) {
+                    eprintln!("{filename}: {e}");
+                }
             }
         }
     }
@@ -79,7 +81,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
         Some(separator) => {
             let delim_bytes = separator.as_bytes();
             if delim_bytes.len() != 1 {
-                bail!("--separator \"{separator}\" must be a single byte");
+                bail!(r#"--separator "{separator}" must be a single byte"#);
             }
             delim_bytes.first().unwrap()
         }
@@ -143,7 +145,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
             };
             table.add_row(Row::new().with_cell(column).with_cell(value));
         }
-        println!("{}", table);
+        println!("{table}");
 
         if args.limit > 0 && ((record_num + 1) >= args.limit) {
             break;
