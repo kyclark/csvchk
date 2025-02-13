@@ -1,0 +1,18 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "csvchk"
+requires-python = ">=3.8"
+authors = [
+    {name = 'Ken Youens-Clark', email = 'kyclark@gmail.com'},
+]
+
+[project.urls]
+Homepage = 'https://github.com/kyclark/csvchk'
+Source = 'https://github.com/kyclark/csvchk'
+
+[tool.maturin]
+python-source = "python"
+module-name = "csvchk.csvchk"
