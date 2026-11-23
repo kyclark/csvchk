@@ -1,10 +1,14 @@
 use clap::Parser;
-use csvchk::{Args, run};
+use csvchk::{run, Args};
+use std::process::ExitCode;
 
 // --------------------------------------------------
-fn main() {
-    if let Err(e) = run(Args::parse()) {
-        eprintln!("{e}");
-        std::process::exit(1);
+fn main() -> ExitCode {
+    match run(Args::parse()) {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::FAILURE
+        }
     }
 }

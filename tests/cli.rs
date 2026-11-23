@@ -14,6 +14,7 @@ const SPARSE: &str = "tests/inputs/sparse.csv";
 const BOOKS_TSV: &str = "tests/inputs/books.tsv";
 const BOOKS_TXT: &str = "tests/inputs/books.txt";
 const BLAST_CSV: &str = "tests/inputs/blast.csv";
+const GREP_CSV: &str = "tests/inputs/grep.csv";
 
 // --------------------------------------------------
 fn gen_bad_file() -> String {
@@ -37,7 +38,8 @@ fn skips_bad_file() -> Result<()> {
     Command::cargo_bin(PRG)?
         .args(&[NOHDR, &bad, CSV])
         .assert()
-        .success()
+        .failure()
+        .stdout(predicate::str::contains(format!("==> {CSV} <==")))
         .stderr(predicate::str::is_match(expected)?);
     Ok(())
 }
@@ -48,37 +50,112 @@ fn skips_directory() -> Result<()> {
     Command::cargo_bin(PRG)?
         .args(&["."])
         .assert()
-        .success()
+        .failure()
         .stderr(predicate::str::is_match("Cannot open a directory")?);
     Ok(())
 }
 
 // --------------------------------------------------
 fn complains(args: &[&str], expected: &str) -> Result<()> {
-    let output = Command::cargo_bin(PRG)?.args(args).output().unwrap();
-    assert!(output.status.success());
-
-    let stderr = String::from_utf8(output.stderr).expect("invalid UTF-8");
-    assert_eq!(stderr.trim(), expected);
+    Command::cargo_bin(PRG)?
+        .args(args)
+        .assert()
+        .failure()
+        .stdout("")
+        .stderr(predicate::str::contains(expected));
     Ok(())
 }
 
 // --------------------------------------------------
 #[test]
 fn complains_empty_delimiter() -> Result<()> {
-    complains(
-        &[CSV, "-s", ""],
-        &format!(r#"{CSV}: --separator "" must be a single byte"#),
-    )
+    complains(&[CSV, "-s", ""], r#""" must be a single byte"#)
 }
 
 // --------------------------------------------------
 #[test]
 fn complains_bad_delimiter() -> Result<()> {
-    complains(
-        &[CSV, "--separator", ",,"],
-        &format!(r#"{CSV}: --separator ",," must be a single byte"#),
-    )
+    complains(&[CSV, "--separator", ",,"], r#"",," must be a single byte"#)
+}
+
+// --------------------------------------------------
+#[test]
+fn complains_bad_pattern_once() -> Result<()> {
+    let output = Command::cargo_bin(PRG)?
+        .args(&["-g", "(", CSV, MOVIES_CSV])
+        .output()?;
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr)?;
+    assert_eq!(stderr, "Invalid --grep pattern \"(\"\n");
+    Ok(())
+}
+
+// --------------------------------------------------
+#[test]
+fn complains_column_count() -> Result<()> {
+    let output = Command::cargo_bin(PRG)?
+        .args(&["-N", "-c", "a,b", BOOKS_TSV])
+        .output()?;
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8(output.stderr)?;
+    assert_eq!(
+        stderr,
+        format!("{BOOKS_TSV}: Record 1 has 3 fields but there are 2 column names\n")
+    );
+    Ok(())
+}
+
+// --------------------------------------------------
+#[test]
+fn grep_limit_counts_matches() -> Result<()> {
+    // Matches are records 2, 4 and 5; --limit 2 must show two of them
+    let output = Command::cargo_bin(PRG)?
+        .args(&["-g", "yes", "-l", "2", GREP_CSV])
+        .output()?;
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout)?;
+    let records: Vec<_> = stdout.lines().filter(|l| l.contains("Record")).collect();
+    assert_eq!(
+        records,
+        [
+            "// ****** Record 2 ****** //",
+            "// ****** Record 4 ****** //"
+        ]
+    );
+    Ok(())
+}
+
+// --------------------------------------------------
+#[test]
+fn quiet_on_broken_pipe() -> Result<()> {
+    use std::io::{BufRead, BufReader};
+    use std::process::Stdio;
+
+    // Enough output to overflow the pipe buffer after the reader closes
+    let input =
+        std::env::temp_dir().join(format!("csvchk-pipe-{}.csv", gen_bad_file()));
+    let mut data = String::from("a,b\n");
+    for i in 0..100_000 {
+        data.push_str(&format!("{i},x\n"));
+    }
+    fs::write(&input, data)?;
+
+    let mut child = std::process::Command::new(assert_cmd::cargo::cargo_bin(PRG))
+        .args(["-l", "0", input.to_str().unwrap()])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    let mut first = String::new();
+    BufReader::new(child.stdout.take().unwrap()).read_line(&mut first)?;
+    // Dropping the reader closes the pipe
+    let output = child.wait_with_output()?;
+    fs::remove_file(&input)?;
+
+    assert_eq!(first, "// ****** Record 1 ****** //\n");
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8(output.stderr)?, "");
+    Ok(())
 }
 
 // --------------------------------------------------
@@ -94,11 +171,7 @@ fn run(args: &[&str], expected_file: &str) -> Result<()> {
 }
 
 // --------------------------------------------------
-fn run_stdin(
-    args: &[&str],
-    input_file: &str,
-    expected_file: &str,
-) -> Result<()> {
+fn run_stdin(args: &[&str], input_file: &str, expected_file: &str) -> Result<()> {
     let input = fs::read_to_string(input_file)?;
     let expected = fs::read_to_string(expected_file)?;
     let output = Command::cargo_bin(PRG)?

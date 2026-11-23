@@ -5,10 +5,10 @@ edition = "2021"
 readme = "README.md"
 authors = ["Ken Youens-Clark <kyclark@gmail.com>"]
 description = "Vertical view of delimited text records"
-license-file = "LICENSE"
-homepage = "https://github.com/kyclark/csvchk"
+license = "BSD-3-Clause"
 repository = "https://github.com/kyclark/csvchk"
-categories = ["command-line-utilities", "csv", "delimited text"]
+categories = ["command-line-utilities"]
+keywords = ["csv", "tsv", "delimited"]
 
 [dependencies]
 clap = { version = "4.5.1", features = ["derive"] }

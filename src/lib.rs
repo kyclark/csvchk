@@ -4,129 +4,175 @@ use csv::ReaderBuilder;
 use regex::{Regex, RegexBuilder};
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Write},
     path::Path,
+    process::ExitCode,
 };
 use tabular::{Row, Table};
 
 // --------------------------------------------------
 #[derive(Parser, Debug)]
-#[command(version)]
+#[command(version, about)]
 pub struct Args {
-    #[arg(short, long)]
-    separator: Option<String>,
+    /// Field separator, a single byte (tab for .tsv/.txt files, otherwise comma)
+    #[arg(short, long, value_parser = parse_separator)]
+    separator: Option<u8>,
 
-    #[arg(
-        short,
-        long,
-        default_value = "1",
-        value_parser = clap::value_parser!(usize),
-    )]
+    /// Number of records to show per file (0 for all)
+    #[arg(short, long, default_value = "1")]
     limit: usize,
 
-    #[arg(short, long, default_value = "false")]
+    /// Number the fields
+    #[arg(short, long)]
     number: bool,
 
-    #[arg(short = 'N', long, default_value = "false")]
+    /// Input has no header row
+    #[arg(short = 'N', long)]
     no_headers: bool,
 
-    #[arg(short, long, default_value = "false")]
+    /// Omit empty fields
+    #[arg(short, long)]
     dense: bool,
 
+    /// Comma-separated column names to use instead of the headers
     #[arg(short, long, value_delimiter = ',')]
     columns: Option<Vec<String>>,
 
+    /// Only show records matching this regular expression
     #[arg(short, long)]
     grep: Option<String>,
 
-    #[arg(short, long, default_value = "false")]
+    /// Make --grep case-insensitive
+    #[arg(short, long)]
     insensitive: bool,
 
+    /// Input files, or "-" for STDIN
     #[arg(default_value = "-")]
     files: Vec<String>,
 }
 
 // --------------------------------------------------
-pub fn run(args: Args) -> Result<()> {
-    let num_files = args.files.len();
-    for filename in &args.files {
-        match open(filename) {
-            Err(err) => eprintln!(r#"Error opening "{filename}": {err}"#),
-            Ok(fh) => {
-                if num_files > 1 {
-                    println!("==> {filename} <==");
-                }
-                if let Err(e) = check(fh, filename, &args) {
-                    eprintln!("{filename}: {e}");
-                }
-            }
-        }
+fn parse_separator(val: &str) -> Result<u8, String> {
+    match val.as_bytes() {
+        [byte] => Ok(*byte),
+        _ => Err(format!(r#""{val}" must be a single byte"#)),
     }
-
-    Ok(())
 }
 
 // --------------------------------------------------
-fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
-    let default_sep = guess_separator(filename);
-    let delim = match &args.separator {
-        Some(separator) => {
-            let delim_bytes = separator.as_bytes();
-            if delim_bytes.len() != 1 {
-                bail!(r#"--separator "{separator}" must be a single byte"#);
+/// Runs the program, returning failure if any input file had an error.
+/// Errors that apply to every file (e.g., a bad --grep pattern) are
+/// returned as `Err` before any file is read.
+pub fn run(args: Args) -> Result<ExitCode> {
+    let grep = args
+        .grep
+        .as_ref()
+        .map(|val| {
+            RegexBuilder::new(val)
+                .case_insensitive(args.insensitive)
+                .build()
+                .map_err(|_| anyhow!(r#"Invalid --grep pattern "{val}""#))
+        })
+        .transpose()?;
+
+    let mut out = io::stdout().lock();
+    let mut had_error = false;
+    let num_files = args.files.len();
+
+    for filename in &args.files {
+        let fh = match open(filename) {
+            Err(err) => {
+                eprintln!(r#"Error opening "{filename}": {err}"#);
+                had_error = true;
+                continue;
             }
-            delim_bytes.first().unwrap()
+            Ok(fh) => fh,
+        };
+
+        let mut result = Ok(());
+        if num_files > 1 {
+            result = writeln!(out, "==> {filename} <==").map_err(Into::into);
         }
-        _ => &default_sep,
-    };
+        if result.is_ok() {
+            result = check(fh, filename, &args, grep.as_ref(), &mut out);
+        }
+
+        if let Err(e) = result {
+            // The reader went away (e.g., piped into `head`): stop quietly.
+            if is_broken_pipe(&e) {
+                return Ok(ExitCode::SUCCESS);
+            }
+            eprintln!("{filename}: {e}");
+            had_error = true;
+        }
+    }
+
+    Ok(if had_error {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    })
+}
+
+// --------------------------------------------------
+fn is_broken_pipe(err: &anyhow::Error) -> bool {
+    err.downcast_ref::<io::Error>()
+        .is_some_and(|e| e.kind() == io::ErrorKind::BrokenPipe)
+}
+
+// --------------------------------------------------
+fn check(
+    fh: impl BufRead,
+    filename: &str,
+    args: &Args,
+    grep: Option<&Regex>,
+    out: &mut impl Write,
+) -> Result<()> {
+    let delim = args.separator.unwrap_or_else(|| guess_separator(filename));
 
     let mut reader = ReaderBuilder::new()
-        .delimiter(*delim)
+        .delimiter(delim)
         .has_headers(!args.no_headers)
         .from_reader(fh);
 
-    let headers: Option<Vec<String>> = if let Some(columns) = &args.columns {
+    // Column names: from --columns, else the header row, else generated
+    // as Field1..FieldN from the first record.
+    let mut columns: Option<Vec<String>> = if let Some(columns) = &args.columns {
         Some(columns.clone())
     } else if !args.no_headers {
-        let h = &reader.headers()?.clone();
-        Some(h.iter().map(|c| c.to_string()).collect())
+        Some(reader.headers()?.iter().map(String::from).collect())
     } else {
         None
     };
 
-    let grep = match &args.grep {
-        Some(val) => {
-            let re = RegexBuilder::new(val)
-                .case_insensitive(args.insensitive)
-                .build()
-                .map_err(|_| anyhow!(r#"Invalid pattern "{val}""#))?;
-            Some(re)
-        }
-        _ => None,
-    };
-
+    let mut num_shown = 0;
     for (record_num, record) in reader.records().enumerate() {
         let record = record?;
-        let values: Vec<&str> = record.iter().collect();
 
-        if let Some(re) = &grep {
-            if !re.is_match(&values.join(" ")) {
+        if let Some(re) = grep {
+            let joined = record.iter().collect::<Vec<_>>().join(" ");
+            if !re.is_match(&joined) {
                 continue;
             }
         }
 
-        let columns = &headers.clone().unwrap_or(
-            (1..=values.len()).map(|i| format!("Field{i}")).collect(),
-        );
+        let columns = columns.get_or_insert_with(|| {
+            (1..=record.len()).map(|i| format!("Field{i}")).collect()
+        });
 
-        if columns.len() != values.len() {
-            bail!("Column names do not match record values")
+        if columns.len() != record.len() {
+            bail!(
+                "Record {} has {} fields but there are {} column names",
+                record_num + 1,
+                record.len(),
+                columns.len()
+            )
         }
 
-        println!("// ****** Record {} ****** //", record_num + 1);
+        writeln!(out, "// ****** Record {} ****** //", record_num + 1)?;
         let mut table = Table::new("{:<} : {:<}");
-        for (fnum, (col, value)) in columns.iter().zip(&values).enumerate() {
-            if args.dense && value == &"" {
+        for (fnum, (col, value)) in columns.iter().zip(&record).enumerate() {
+            if args.dense && value.is_empty() {
                 continue;
             }
 
@@ -137,9 +183,10 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
             };
             table.add_row(Row::new().with_cell(column).with_cell(value));
         }
-        println!("{table}");
+        writeln!(out, "{table}")?;
 
-        if args.limit > 0 && ((record_num + 1) >= args.limit) {
+        num_shown += 1;
+        if args.limit > 0 && num_shown >= args.limit {
             break;
         }
     }
@@ -149,8 +196,7 @@ fn check(fh: impl BufRead, filename: &str, args: &Args) -> Result<()> {
 
 // --------------------------------------------------
 fn guess_separator(filename: &str) -> u8 {
-    let re = Regex::new(r"\.(txt|tsv)$").unwrap();
-    if re.is_match(filename) {
+    if filename.ends_with(".txt") || filename.ends_with(".tsv") {
         b'\t'
     } else {
         b','
@@ -164,6 +210,15 @@ fn test_guess_separator() {
     assert_eq!(guess_separator("foo.csv"), b',');
     assert_eq!(guess_separator("foo.txt"), b'\t');
     assert_eq!(guess_separator("foo.tsv"), b'\t');
+}
+
+// --------------------------------------------------
+#[test]
+fn test_parse_separator() {
+    assert_eq!(parse_separator(","), Ok(b','));
+    assert_eq!(parse_separator("\t"), Ok(b'\t'));
+    assert!(parse_separator("").is_err());
+    assert!(parse_separator(",,").is_err());
 }
 
 // --------------------------------------------------
