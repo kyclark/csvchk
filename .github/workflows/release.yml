@@ -16,6 +16,9 @@ jobs:
       - uses: taiki-e/create-gh-release-action@v1
         with:
           prefix: "v"
+          # Release notes come from the matching version heading in
+          # CHANGELOG.md; the release fails if the entry is missing.
+          changelog: CHANGELOG.md
           # (required) GitHub token for creating GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}
 
